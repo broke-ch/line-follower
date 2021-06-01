@@ -1,10 +1,13 @@
+// bang-bang & PD control system for line following robot
+// by Kevin Nguyen: May 2021
+
 #define F_CPU 16000000UL //16 MHz
 #include <avr/io.h>
 #include <avr/delay.h>
 #include <avr/interrupt.h>
 #include <stdlib.h>
 
-#define TOLERANCE 100
+#define TOLERANCE 130
 #define BB_BASE 73
 #define BB_SLIGHT 68
 #define PD_BASE 55
@@ -198,14 +201,15 @@ void control(double kp, double kd, int *last_error, int base, int type){
 			&& pot3 > TOLERANCE
 			&& pot2 > TOLERANCE 
 			){
+
 //			error = *last_error;
 			setMotorSpeeds(0, 0);
-			SMCR |= (1<<SM1)|(1<<SE); // power saving mode
+			SMCR |= (1<<SM1)|(1<<SE);	// power saving mode
 			delay(1000);
 		}
 
 		else{
-			SMCR = 0;
+			SMCR = 0;					// power saving mode off
 			error = 0 - current_pos;
 		}
 		int derivative = error - *last_error;

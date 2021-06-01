@@ -1,3 +1,6 @@
+// Bang-Bang control system for line following robot
+// by Kevin Nguyen: March 2021
+
 #define F_CPU 16000000UL //16 MHz
 #include <avr/io.h>
 #include <avr/delay.h>
