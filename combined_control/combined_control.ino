@@ -162,15 +162,29 @@ void apex_detect(){
 		Type ^= 1;
 		_delay_ms(5);
 	}
+	if(Type == 1){
+		PORTB |= (1<<1);
+		PORTB &= ~((1<<2)|(1<<0));
+	}
+	else if(Type == 1)
+		PORTB |= (1<<0);
+		PORTB &= ~((1<<1)|(1<<2));
 }
 
 void RHS_detect(){	
 	if(pot1 > RHS_HIGH &&  pot1 < RHS_MID){		// if marker is white
+		setMotorSpeeds(0, 0);
+		_delay_ms(2000);
+		setMotorSpeeds(BB_BASE ,BB_BASE);
 		laps++;
 		_delay_ms(5);
 	}
 	else if(pot1 < RHS_MID&&  pot1 < RHS_LOW){	// if marker is coloured
 		slowzone ^= 1;
+	}
+	if(slowzone == 1){
+		PORTB |= (1<<0)|(1<<1);
+		PORTB &= ~(1<<2);
 	}
 }
 
@@ -269,11 +283,14 @@ void control(double kp, double kd, int *last_error, int base, int type){
 }
 
 void led_init(){
-	DDRB |= (1<<1)|(1<<2)|(1<<6)|(1<<5);
+	DDRB |= (1<<2)|(1<<1)|(1<<0);
+	// PB0 -> RED
+	// PB1 -> GREEN
+	// PB2 -> BLUE
+
 }
 
 int main(){
-
 	led_init();
 	adc_init();
 	pwm_init();
@@ -283,12 +300,6 @@ int main(){
 		outsideSensors();
 		//RHS_detect();
 
-		if(Type = 1){
-			PORTB |= (1<<6)|(1<<5)|(1<<2)|(1<<1);
-		}
-		else{
-			PORTB &= ~((1<<6)|(1<<5)|(1<<2)|(1<<1));
-		}
   		//if(laps < 7){
 		control(Kp, Kd, *last_error, Base, Type);
 		//}
