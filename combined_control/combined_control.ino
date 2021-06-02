@@ -7,11 +7,15 @@
 #include <avr/interrupt.h>
 #include <stdlib.h>
 
-#define TOLERANCE 130
+#define TOLERANCE 140
+#define RHS_HIGH 150
+#define RHS_MID 120
+#define RHS_LOW 90
 #define BB_BASE 73
 #define BB_SLIGHT 68
 #define PD_BASE 55
 #define KP 8.7
+#define KD 1.45
 
 
 uint16_t pot8;
@@ -23,14 +27,18 @@ uint16_t pot3;
 uint16_t pot2;
 uint16_t pot1;
 
-int Base;
-int Type;
+uint8_t apexMarker = 0;
+uint8_t slowzone = 0;
+
+int laps = 0;
+int Base = PD_BASE;
+int Type = 1;
 int error;
 int position = 0;
 int *last_error = 0;
 
-double Kp;
-double Kd = 1.45;
+double Kp = KP;
+double Kd = KD;
 
 void pwm_init(){
 	TCCR0A |= (1<<WGM00);
@@ -50,7 +58,7 @@ void pwm_init(){
 	// motor A uses OCR0A
 	// motor A uses OCR0B
 	
-	//Motr 2
+	//Motor 2
 	DDRB |= (1<<0);
 	DDRB |= (1<<7);
 	//Motor 1
@@ -148,6 +156,36 @@ void setMotorSpeeds(double motorA, double motorB) {
 	OCR0B = 255 * motorB/100;
 }
 
+
+void apex_detect(){	
+	if(pot8 < TOLERANCE){
+		Type ^= 1;
+		_delay_ms(5);
+	}
+}
+
+void RHS_detect(){	
+	if(pot1 > RHS_HIGH &&  pot1 < RHS_MID){		// if marker is white
+		laps++;
+		_delay_ms(5);
+	}
+	else if(pot1 < RHS_MID&&  pot1 < RHS_LOW){	// if marker is coloured
+		slowzone ^= 1;
+	}
+}
+
+void outsideSensors(){
+	sen_8();
+	sen_1();
+	if(pot8 > TOLERANCE && pot1 > TOLERANCE){
+		Type = 1;
+	}
+	else{
+		apex_detect();
+		RHS_detect();
+	}
+}
+
 int current_position(){
 	if(pot2 < TOLERANCE && pot3 < TOLERANCE && pot4 < TOLERANCE
 	&& pot5 < TOLERANCE && pot6 < TOLERANCE && pot7 < TOLERANCE)
@@ -181,7 +219,18 @@ int current_position(){
 
 void control(double kp, double kd, int *last_error, int base, int type){
   int current_pos = current_position();
-	if(type == 1){
+  	if(type == 1 && slowzone == 1){
+		if(pot4 < TOLERANCE && pot5 < TOLERANCE) { 	// if 4 & 5 see line, go straight
+			setMotorSpeeds(BB_BASE/2.0, BB_BASE/2.0);
+		}		
+		else if(pot4 >= TOLERANCE && pot5 < TOLERANCE){	// if 5 sees the line and 4 does not SLIGHT LEFT
+			setMotorSpeeds(BB_BASE/2.0, BB_SLIGHT/2.0);
+		}
+		else if(pot4 < TOLERANCE && pot5 >= TOLERANCE){	// if 4 sees line & 5 does not SLIGHT RIGHT
+			setMotorSpeeds(BB_SLIGHT/2.0, BB_BASE/2.0);
+		}
+	}
+	else if(type == 1){
 		if(pot4 < TOLERANCE && pot5 < TOLERANCE) { 	// if 4 & 5 see line, go straight
 			setMotorSpeeds(BB_BASE, BB_BASE);
 		}		
@@ -231,18 +280,17 @@ int main(){
 
 	while(1) {
 		read_sensors();
-		current_position();
+		outsideSensors();
+		//RHS_detect();
 
-		if(position == -1 || position == 0 || position == 1){
-			Type = 1;
+		if(Type = 1){
 			PORTB |= (1<<6)|(1<<5)|(1<<2)|(1<<1);
 		}
 		else{
-			Type = 0;
-			Base = PD_BASE;
-			Kp = KP;
 			PORTB &= ~((1<<6)|(1<<5)|(1<<2)|(1<<1));
 		}
+  		//if(laps < 7){
 		control(Kp, Kd, *last_error, Base, Type);
+		//}
 	}
 }
