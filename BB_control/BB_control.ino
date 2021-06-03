@@ -56,71 +56,74 @@ void adc_init(){
   // enable adc, clock prescaler of 128
   ADCSRA |= (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
   ADCSRB = 0;
+  DDRC &= ~((1<<7)|(1<<6));
+
 }
 
 void sen_8() {
-  ADMUX = 0b11100000;
-  ADCSRB = 0b00100000;    // enable adc 8 -> 100000
-  ADCSRA |= (1<<6);     // start conversion
-  while(ADCSRA&(1<<ADSC)){}   // wait for conversion to complete
-  pot8 = ADCH;
+	ADMUX = 0b11100010;
+	ADCSRB = 0b00100000;    // 
+	ADCSRA |= (1<<6);     // start conversion
+	while(ADCSRA&(1<<ADSC)){}   // wait for conversion to complete
+	pot8 = ADCH;
 }
 
 void sen_7() {
-  ADMUX = 0b11100001; // sensor 7 -> adc9
-  ADCSRB = 0b00100000;
-  ADCSRA |= (1<<6);
-  while(ADCSRA&(1<<ADSC)){}
-  pot7 = ADCH;
+	ADMUX = 0b11100011; // 
+	ADCSRB = 0b00100000;
+	ADCSRA |= (1<<6);
+	while(ADCSRA&(1<<ADSC)){}
+	pot7 = ADCH;
 }
 
 void sen_6() {
-  ADMUX = 0b11100010; // sensor 6 -> adc10
-  ADCSRB = 0b00100000;
-  ADCSRA |= (1<<6);
-  while(ADCSRA&(1<<ADSC)){}
-  pot6 = ADCH;
+	ADMUX = 0b11100001;
+	ADCSRB = 0b00100000;
+	ADCSRA |= (1<<6);
+	while(ADCSRA&(1<<ADSC)){}
+	pot6 = ADCH;
 }
 
 void sen_5() {
-  ADMUX = 0b11100011; // sensor 5 -> adc11
-  ADCSRB = 0b00100000;
-  ADCSRA |= (1<<6);
-  while(ADCSRA&(1<<ADSC)){}
-  pot5 = ADCH;
+	ADMUX = 0b11100000;
+	ADCSRB = 0b00100000;
+	ADCSRA |= (1<<6);
+	while(ADCSRA&(1<<ADSC)){}
+	pot5 = ADCH;
 }
 
 void sen_4() { 
-  ADMUX = 0b11100111; // sensor 4 -> adc7
-  ADCSRB = 0b00000000;
-  ADCSRA |= (1<<6);
-  while(ADCSRA&(1<<ADSC)){}
-  pot4 = ADCH;
+	ADMUX = 0b11100101;
+	ADCSRB = 0b00000000;
+	ADCSRA |= (1<<6);
+	while(ADCSRA&(1<<ADSC)){}
+	pot4 = ADCH;
 }
 
-void sen_3() {  // sensor 3 -> adc6
-  ADMUX = 0b11100110;
-  ADCSRB = 0b00000000;
-  ADCSRA |= (1<<6);
-  while(ADCSRA&(1<<ADSC)){}
-  pot3 = ADCH;
+void sen_3() {
+	ADMUX = 0b11100100;
+	ADCSRB = 0b00000000;
+	ADCSRA |= (1<<6);
+	while(ADCSRA&(1<<ADSC)){}
+	pot3 = ADCH;
 }
 
 void sen_2() { // sensor 2 -> adc5
-  ADMUX = 0b11100101;
-  ADCSRB = 0b00000000;
-  ADCSRA |= (1<<6);
-  while(ADCSRA&(1<<ADSC)){}
-  pot2 = ADCH;
+	ADMUX = 0b11100001;
+	ADCSRB = 0b00000000;
+	ADCSRA |= (1<<6);
+	while(ADCSRA&(1<<ADSC)){}
+	pot2 = ADCH;
 }
 
 void sen_1() {  // sensor 1 -> adc4
-  ADMUX = 0b11100100;
-  ADCSRB = 0b00000000;
-  ADCSRA |= (1<<6);
-  while(ADCSRA&(1<<ADSC)){}
-  pot1 = ADCH;
+	ADMUX = 0b11100000;
+	ADCSRB = 0b00000000;
+	ADCSRA |= (1<<6);
+	while(ADCSRA&(1<<ADSC)){}
+	pot1 = ADCH;
 }
+
 
 
 int main(){
