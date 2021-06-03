@@ -4,12 +4,12 @@
 #include <avr/interrupt.h>
 #include <stdlib.h>
 
-#define TOLERANCE 180
-#define BB_BASE 75
-#define BB_SLIGHT 74
-#define PD_BASE 40
-#define KP 8.1
-#define KD 1.4
+#define TOLERANCE 100
+#define BB_BASE 73
+#define BB_SLIGHT 68
+#define PD_BASE 45
+#define KP 7.75
+#define KD 1.45
 
 
 uint16_t pot8;
@@ -22,7 +22,6 @@ uint16_t pot2;
 uint16_t pot1;
 
 int Base;
-int Base2 = BB_BASE;
 int Type;
 int error;
 int position = 0;
@@ -67,7 +66,7 @@ void adc_init(){
 	// enable adc, clock prescaler of 128
 	ADCSRA |= (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1);
 	ADCSRB = 0;
-  	DDRC &= ~((1<<7)|(1<<6));
+	DDRC &= ~((1<<7)|(1<<6));
 }
 
 void sen_8() {
@@ -143,22 +142,61 @@ void read_sensors(){
 	sen_2();
 }
 
+uint8_t LHS_W= 0;
+uint8_t RHS_W = 0;
 
+uint8_t threshold = 10; 	// tolerance
+uint8_t seen = 0;
+
+int lap = 0;
+
+void marker_detect(){
+	sen_1();
+	sen_2();
+
+	if(pot8 < TOLERANCE){ // IF SENSOR 8 SEES LINE INCREMENT
+		 LHS_W++;
+	}
+	else if(LHS_W > 0){
+		LHS_W--;
+	}
+
+	if(pot1 < TOLERANCE){ // IF SENSOR 8 SEES LINE INCREMENT
+		 RHS_W++;
+	}
+	else if(RHS_W > 0){
+		RHS_W--;
+	}
+}
+
+int RHS_marker = 0;
+int LHS_marker = 0;
+
+void lap_counter(){
+
+	if(RHS_W > threshold){
+		RHS_marker++;
+	}
+
+	if(RHS_marker  > 6){
+		setMotorSpeeds(0, 0);
+		PORTB &= ~((1<<6)|(1<<5)|(1<<2)|(1<<1));
+	}
+
+	if((RHS_marker % 2) == 0){
+		_delay_ms(2000);
+	}
+}
 
 void setMotorSpeeds(double motorA, double motorB) {
 	OCR0A = 255 * motorA/100; 
 	OCR0B = 255 * motorB/100;
 }
-int intersection = 0;
 
 int current_position(){
 	if(pot2 < TOLERANCE && pot3 < TOLERANCE && pot4 < TOLERANCE
 	&& pot5 < TOLERANCE && pot6 < TOLERANCE && pot7 < TOLERANCE)
-	{
-		position = 0;
-		intersection ++;
-		_delay_ms(250);
-	}
+		{position = 0;} // Straight line case
 	if(pot4 < TOLERANCE && pot5 < TOLERANCE)
 		{position = 0;}// Straight line case
 
@@ -186,17 +224,17 @@ int current_position(){
   return position;
 }
 
-void control(double kp, double kd, int *last_error, int base, int type, int base2){
+void control(double kp, double kd, int *last_error, int base, int type){
   int current_pos = current_position();
 	if(type == 1){
 		if(pot4 < TOLERANCE && pot5 < TOLERANCE) { 	// if 4 & 5 see line, go straight
-			setMotorSpeeds(Base2, Base2);
+			setMotorSpeeds(BB_BASE, BB_BASE);
 		}		
 		else if(pot4 >= TOLERANCE && pot5 < TOLERANCE){	// if 5 sees the line and 4 does not SLIGHT LEFT
-			setMotorSpeeds(Base2 , Base2-2);
+			setMotorSpeeds(BB_BASE, BB_SLIGHT);
 		}
 		else if(pot4 < TOLERANCE && pot5 >= TOLERANCE){	// if 4 sees line & 5 does not SLIGHT RIGHT
-			setMotorSpeeds(Base2-2, Base2);
+			setMotorSpeeds(BB_SLIGHT, BB_BASE);
 		}
 	}
 	else{
@@ -224,54 +262,33 @@ void control(double kp, double kd, int *last_error, int base, int type, int base
 }
 
 void led_init(){
-	DDRB |= (1<<1)|(1<<2); //(1<<6)|(1<<5);
+	DDRB |= (1<<1)|(1<<2)|(1<<6)|(1<<5);
 }
 
 int main(){
-
-	int lap = 0;
-	int slow_zone = 0;
 
 	led_init();
 	adc_init();
 	pwm_init();
 
-	while(lap <= 5) {
-		sen_1();
-		sen_8();
-
-		
-		if(pot1 < TOLERANCE){
-			_delay_ms(100);
-			lap++;
-			intersection = 0;
-			if((lap % 2) == 0){
-				setMotorSpeeds(0, 0);
-				_delay_ms(2000);
-			}
-		}
-
-
+	while(1) {
+		marker_detect();
+		lap_counter();
 
 		read_sensors();
+
 		if(position == -1 || position == 0 || position == 1){
 			Type = 1;
-			PORTB |= (1<<1);
 			// TURN ON ALL LEDS
-//			PORTB |= (1<<6)|(1<<5)|(1<<2)|(1<<1);
+			PORTB |= (1<<6)|(1<<5)|(1<<2)|(1<<1);
 		}
 		else{
 			Type = 0;
 			Base = PD_BASE;
 			Kp = KP;
-			PORTB &= ~(1<<1);
 			// TURN OFF ALL LEDS
-//			PORTB &= ~((1<<6)|(1<<5)|(1<<2)|(1<<1));
+			PORTB &= ~((1<<6)|(1<<5)|(1<<2)|(1<<1));
 		}
-		control(Kp, Kd, *last_error, Base, Type, Base2);
-	}
-	if(lap == 6){
-		setMotorSpeeds(0, 0);
-		PORTB &= ~((1<<0)|(1<<2));
+		control(Kp, Kd, *last_error, Base, Type);
 	}
 }
