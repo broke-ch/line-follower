@@ -4,12 +4,12 @@
 #include <avr/interrupt.h>
 #include <stdlib.h>
 
-#define TOLERANCE 130
+#define TOLERANCE 150
 #define BB_BASE 73
 #define BB_SLIGHT 68
 #define PD_BASE 45
 #define KP 7.75
-#define KP 1.45
+#define KD 1.45
 
 
 uint16_t pot8;
@@ -48,7 +48,7 @@ void pwm_init(){
 	// motor A uses OCR0A
 	// motor A uses OCR0B
 	
-	//Motr 2
+	//Motor 2
 	DDRB |= (1<<0);
 	DDRB |= (1<<7);
 	//Motor 1
@@ -66,67 +66,68 @@ void adc_init(){
 	// enable adc, clock prescaler of 128
 	ADCSRA |= (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1);
 	ADCSRB = 0;
+  DDRC &= ~((1<<7)|(1<<6));
 }
 
 void sen_8() {
-	ADMUX = 0b11100000;
-	ADCSRB = 0b00100000;    // enable adc 8 -> 100000
-	ADCSRA |= (1<<6);     // start conversion
+	ADMUX = 0b11100000;			// ADC0
+	ADCSRB = 0b00000000;
+	ADCSRA |= (1<<6);			// start conversion
 	while(ADCSRA&(1<<ADSC)){}   // wait for conversion to complete
 	pot8 = ADCH;
 }
 
 void sen_7() {
-	ADMUX = 0b11100001; // sensor 7 -> adc9
-	ADCSRB = 0b00100000;
+	ADMUX = 0b11100001;			// ADC1
+	ADCSRB = 0b00000000;
 	ADCSRA |= (1<<6);
 	while(ADCSRA&(1<<ADSC)){}
 	pot7 = ADCH;
 }
 
 void sen_6() {
-	ADMUX = 0b11100010; // sensor 6 -> adc10
-	ADCSRB = 0b00100000;
+	ADMUX = 0b11100100;			// ADC4
+	ADCSRB = 0b00000000;
 	ADCSRA |= (1<<6);
 	while(ADCSRA&(1<<ADSC)){}
 	pot6 = ADCH;
 }
 
 void sen_5() {
-	ADMUX = 0b11100011; // sensor 5 -> adc11
-	ADCSRB = 0b00100000;
+	ADMUX = 0b11100101; 		// ADC5
+	ADCSRB = 0b00000000;
 	ADCSRA |= (1<<6);
 	while(ADCSRA&(1<<ADSC)){}
 	pot5 = ADCH;
 }
 
 void sen_4() { 
-	ADMUX = 0b11100111; // sensor 4 -> adc7
-	ADCSRB = 0b00000000;
+	ADMUX = 0b11100001;			// ADC9
+	ADCSRB = 0b00100000;
 	ADCSRA |= (1<<6);
 	while(ADCSRA&(1<<ADSC)){}
 	pot4 = ADCH;
 }
 
-void sen_3() {  // sensor 3 -> adc6
-	ADMUX = 0b11100110;
-	ADCSRB = 0b00000000;
+void sen_3() {
+	ADMUX = 0b11100000;			// ADC8
+	ADCSRB = 0b00100000;
 	ADCSRA |= (1<<6);
 	while(ADCSRA&(1<<ADSC)){}
 	pot3 = ADCH;
 }
 
-void sen_2() { // sensor 2 -> adc5
-	ADMUX = 0b11100101;
-	ADCSRB = 0b00000000;
+void sen_2() {
+	ADMUX = 0b11100011;			// ADC11
+	ADCSRB = 0b00100000;
 	ADCSRA |= (1<<6);
 	while(ADCSRA&(1<<ADSC)){}
 	pot2 = ADCH;
 }
 
-void sen_1() {  // sensor 1 -> adc4
-	ADMUX = 0b11100100;
-	ADCSRB = 0b00000000;
+void sen_1() {
+	ADMUX = 0b11100010;			// ADC10
+	ADCSRB = 0b00100000;
 	ADCSRA |= (1<<6);
 	while(ADCSRA&(1<<ADSC)){}
 	pot1 = ADCH;
@@ -140,6 +141,10 @@ void read_sensors(){
 	sen_3();
 	sen_2();
 }
+
+//void lap_counter(){
+//	sen_
+//}
 
 void setMotorSpeeds(double motorA, double motorB) {
 	OCR0A = 255 * motorA/100; 
@@ -226,16 +231,17 @@ int main(){
 
 	while(1) {
 		read_sensors();
-		current_position();
 
 		if(position == -1 || position == 0 || position == 1){
 			Type = 1;
+			// TURN ON ALL LEDS
 			PORTB |= (1<<6)|(1<<5)|(1<<2)|(1<<1);
 		}
 		else{
 			Type = 0;
 			Base = PD_BASE;
 			Kp = KP;
+			// TURN OFF ALL LEDS
 			PORTB &= ~((1<<6)|(1<<5)|(1<<2)|(1<<1));
 		}
 		control(Kp, Kd, *last_error, Base, Type);
